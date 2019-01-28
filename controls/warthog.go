@@ -53,9 +53,27 @@ func WarthogStick() *device {
 	d.AddControl("nws", Button(NWS))
 	d.AddControl("index", Button(INDEX_BUTTON))
 	d.AddControl("paddle", Button(PINKY_PADDLE))
+
+	/* I'm not sure fourways are worth the effort; if there's no four-state dcs objects to bind to
 	d.AddControl("tms", FourWay(TMS_FWD, TMS_RIGHT, TMS_AFT, TMS_LEFT))
 	d.AddControl("dms", FourWay(DMS_FWD, DMS_RIGHT, DMS_AFT, DMS_LEFT))
 	d.AddControl("cms", FourWay(CMS_FWD, CMS_RIGHT, CMS_AFT, CMS_LEFT).Depress(CMS_DEPRESS))
+	*/
+	d.AddControl("tms_up", Button(TMS_FWD))
+	d.AddControl("tms_rt", Button(TMS_RIGHT))
+	d.AddControl("tms_dn", Button(TMS_AFT))
+	d.AddControl("tms_lt", Button(TMS_LEFT))
+
+	d.AddControl("dms_up", Button(DMS_FWD))
+	d.AddControl("dms_rt", Button(DMS_RIGHT))
+	d.AddControl("dms_dn", Button(DMS_AFT))
+	d.AddControl("dms_lt", Button(DMS_LEFT))
+
+	d.AddControl("cms_up", Button(CMS_FWD))
+	d.AddControl("cms_rt", Button(CMS_RIGHT))
+	d.AddControl("cms_dn", Button(CMS_AFT))
+	d.AddControl("cms_lt", Button(CMS_LEFT))
+	d.AddControl("cms_dp", Button(CMS_DEPRESS))
 
 	return d
 }

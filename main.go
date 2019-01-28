@@ -13,22 +13,33 @@ import (
 
 var throttle, stick *device
 
-const (
-	PRESSED  bool = true
-	RELEASED bool = false
-)
-
-func dcsToggle(msg string) controls.Action {
-	return dcsToggleWithVals(msg, "1", "0")
+type _dcsAction struct {
+	msg []string
 }
 
-func dcsToggleWithVals(msg, on, off string) controls.Action {
-	return controls.ToggleAction(dcsSend(msg, on), dcsSend(msg, off))
+func dcsAction(msgs ...string) _dcsAction {
+	return _dcsAction{msgs}
 }
 
-func dcsSend(msg, val string) func() {
-	return func() {
-		dcs.Send(msg, val)
+func (a _dcsAction) HandleEvent(control controls.Control, state controls.State) {
+	for _, msg := range a.msg {
+		dcs.Send(msg, string(control.Value(state)))
+	}
+}
+
+type _dcsToggle struct {
+	msg []string
+}
+
+func dcsToggle(msgs ...string) _dcsToggle {
+	return _dcsToggle{msgs}
+}
+
+func (a _dcsToggle) HandleEvent(_ controls.Control, state controls.State) {
+	if state == controls.STATE_ON {
+		for _, msg := range a.msg {
+			dcs.Send(msg, "TOGGLE")
+		}
 	}
 }
 
@@ -48,19 +59,29 @@ func main() {
 
 	warthog.ModeToggle(stick.Control("paddle"), controls.MODE_SHIFT, controls.MODE_NORM)
 
-	//stick.Control("trigger1").ModeAction(controls.MODE_ALL, pulse(kb, kbd.VK_SPACE))
-	//stick.Control("trigger2").ModeAction(controls.MODE_ALL, pulse(kb, kbd.VK_T))
-	stick.Control("weaponrelease").ModeAction(controls.MODE_NORM, dcsToggle("WEAPON_RELEASE"))
-	stick.Control("weaponrelease").ModeAction(controls.MODE_SHIFT, controls.OnPress(dcsSend("RWR_PWR", "TOGGLE")))
+	//stick.Control("trigger1").Action(controls.MODE_ALL, pulse(kb, kbd.VK_SPACE))
+	//stick.Control("trigger2").Action(controls.MODE_ALL, pulse(kb, kbd.VK_T))
+
+	stick.Control("weaponrelease").Action(controls.MODE_NORM, dcsAction("WEAPON_RELEASE"))
+	stick.Control("weaponrelease").Action(controls.MODE_SHIFT, dcsToggle("RWR_PWR"))
+
+	stick.Control("nws").Action(controls.MODE_ALL, dcsAction("NWS"))
+	stick.Control("index").Action(controls.MODE_NORM, dcsAction("FL_CHAFF_BT"))
+
+	stick.Control("tms_up").Action(controls.MODE_SHIFT, dcsToggle("ARMPOS0", "ARMPOS6"))
+	stick.Control("tms_dn").Action(controls.MODE_SHIFT, dcsToggle("ARMPOS3"))
+	stick.Control("tms_rt").Action(controls.MODE_SHIFT, dcsToggle("ARMPOS2", "ARMPOS4"))
+	stick.Control("tms_lt").Action(controls.MODE_SHIFT, dcsToggle("ARMPOS1", "ARMPOS5"))
+
+	throttle := warthog.Device("throttle")
+
+	throttle.Control("speedbrake").Action(controls.MODE_ALL, dcsAction("SPEED"))
+	throttle.Control("boatswitch").Action(controls.MODE_ALL, dcsAction("A_FLAPS"))
+	throttle.Control("flaps").Action(controls.MODE_ALL, dcsAction("FLAPS"))
+	throttle.Control("eacarm").Action(controls.MODE_ALL, dcsAction("GEAR"))
 
 	dcs.Register(&StringOutput{Addr: 0x0000, MaxLength: 16, Action: func(_ uint16, s string) {
 		fmt.Printf("Airplane: %s\n", s)
-	}})
-	dcs.Register(&IntegerOutput{Addr: 0x0408, Mask: 0xffff, Action: func(_, val uint16) {
-		fmt.Printf("Altitude: %d' MSL\n", val)
-	}})
-	dcs.Register(&IntegerOutput{Addr: 0x765a, Mask: 0x2000, Action: func(_, val uint16) {
-		fmt.Printf("Weapon Release: %d\n", val)
 	}})
 	go dcs.Receive()
 

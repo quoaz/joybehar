@@ -12,8 +12,8 @@ type device struct {
 	name  string
 	group *deviceGroup
 
-	controls      map[string]control
-	buttonHandler map[uint8]control
+	controls      map[string]Control
+	buttonHandler map[uint8]Control
 
 	joyId        int
 	joystick     joystick.Joystick
@@ -23,17 +23,17 @@ type device struct {
 func NewDevice(name string) *device {
 	return &device{
 		name:          name,
-		controls:      make(map[string]control, 0),
-		buttonHandler: make(map[uint8]control, 0),
+		controls:      make(map[string]Control, 0),
+		buttonHandler: make(map[uint8]Control, 0),
 		buttonEvents:  make(chan ButtonEvent, 0),
 	}
 }
 
-func (d *device) Control(name string) control {
+func (d *device) Control(name string) Control {
 	return d.controls[name]
 }
 
-func (d *device) AddControl(name string, c control) {
+func (d *device) AddControl(name string, c Control) {
 	c.setParent(d)
 	d.controls[name] = c
 	for _, id := range c.ButtonIDs() {
@@ -88,41 +88,49 @@ func (dg *deviceGroup) AddDevice(device *device) {
 	}
 }
 
-func (dg *deviceGroup) ModeToggle(c control, on, off Mode) {
-	c.ModeAction(MODE_ALL, func(ev ButtonEvent) {
-		if ev.pressed {
-			dg.mode = dg.mode&(0xFF^off) | on
-		} else {
-			dg.mode = dg.mode&(0xFF^on) | off
-		}
-		fmt.Printf("MODE: %b\n", dg.mode)
-	})
+type State uint8
+
+const (
+	STATE_OFF   State = 0
+	STATE_HI    State = 1
+	STATE_ON    State = 1
+	STATE_LOW   State = 2
+	STATE_UP    State = 1
+	STATE_RIGHT State = 2
+	STATE_DOWN  State = 3
+	STATE_LEFT  State = 4
+	STATE_PRESS State = 5
+)
+
+type Action interface {
+	HandleEvent(control Control, state State)
 }
 
-type Action func(ButtonEvent)
+type modeAction struct {
+	dg      *deviceGroup
+	on, off Mode
+}
 
-func OnPress(a func()) Action {
-	return func(ev ButtonEvent) {
-		if ev.pressed {
-			a()
-		}
+func (a modeAction) HandleEvent(_ Control, state State) {
+	if state == STATE_HI {
+		a.dg.mode = a.dg.mode&(0xFF^a.off) | a.on
+	} else {
+		a.dg.mode = a.dg.mode&(0xFF^a.on) | a.off
 	}
+	fmt.Printf("MODE: %b\n", a.dg.mode)
 }
 
-func ToggleAction(on, off func()) Action {
-	return func(ev ButtonEvent) {
-		if ev.pressed {
-			on()
-		} else {
-			off()
-		}
-	}
+func (dg *deviceGroup) ModeToggle(c Control, on, off Mode) {
+	c.Action(MODE_ALL, modeAction{dg, on, off})
 }
 
-type control interface {
+type Value string
+
+type Control interface {
 	ButtonIDs() []uint8
 	Handle(ButtonEvent)
-	ModeAction(Mode, Action)
+	Action(Mode, Action)
+	Value(State) Value
 	setParent(*device)
 }
 
@@ -130,12 +138,17 @@ type button struct {
 	parent   *device
 	buttonId uint8
 	actions  map[Mode]Action
+	values   map[State]Value
 }
 
 func Button(b uint8) *button {
 	return &button{
 		buttonId: b,
 		actions:  make(map[Mode]Action, 0),
+		values: map[State]Value{
+			STATE_OFF: "0",
+			STATE_ON:  "1",
+		},
 	}
 }
 
@@ -144,16 +157,24 @@ func (c *button) ButtonIDs() []uint8 {
 }
 
 func (c *button) Handle(ev ButtonEvent) {
+	state := STATE_OFF
+	if ev.pressed {
+		state = STATE_ON
+	}
 	for mode, action := range c.actions {
 		if c.parent.group.mode == 0 || c.parent.group.mode&mode > 0 {
-			action(ev)
+			action.HandleEvent(c, state)
 		}
 	}
 }
 
-func (c *button) ModeAction(mode Mode, action Action) {
+func (c *button) Action(mode Mode, action Action) {
 	fmt.Printf("adding action for mode %b\n", mode)
 	c.actions[mode] = action
+}
+
+func (c *button) Value(state State) Value {
+	return c.values[state]
 }
 
 func (c *button) setParent(dg *device) {
@@ -164,12 +185,17 @@ type toggle struct {
 	parent   *device
 	buttonId uint8
 	actions  map[Mode]Action
+	values   map[State]Value
 }
 
 func Toggle(b uint8) *toggle {
 	return &toggle{
 		buttonId: b,
 		actions:  make(map[Mode]Action, 0),
+		values: map[State]Value{
+			STATE_OFF: "0",
+			STATE_HI:  "1",
+		},
 	}
 }
 
@@ -178,10 +204,23 @@ func (c *toggle) ButtonIDs() []uint8 {
 }
 
 func (c *toggle) Handle(ev ButtonEvent) {
-	fmt.Printf("Toggle is unimplemented %v\n", ev)
+	state := STATE_OFF
+	if ev.pressed {
+		state = STATE_ON
+	}
+	for mode, action := range c.actions {
+		if c.parent.group.mode == 0 || c.parent.group.mode&mode > 0 {
+			action.HandleEvent(c, state)
+		}
+	}
 }
-func (c *toggle) ModeAction(mode Mode, action Action) {
+
+func (c *toggle) Action(mode Mode, action Action) {
 	c.actions[mode] = action
+}
+
+func (c *toggle) Value(state State) Value {
+	return c.values[state]
 }
 
 func (c *toggle) setParent(dg *device) {
@@ -193,6 +232,7 @@ type toggle3 struct {
 	upId    uint8
 	downId  uint8
 	actions map[Mode]Action
+	values  map[State]Value
 }
 
 func Toggle3(u, d uint8) *toggle3 {
@@ -200,6 +240,11 @@ func Toggle3(u, d uint8) *toggle3 {
 		upId:    u,
 		downId:  d,
 		actions: make(map[Mode]Action, 0),
+		values: map[State]Value{
+			STATE_LOW: "0",
+			STATE_OFF: "1",
+			STATE_HI:  "2",
+		},
 	}
 }
 
@@ -208,10 +253,28 @@ func (c *toggle3) ButtonIDs() []uint8 {
 }
 
 func (c *toggle3) Handle(ev ButtonEvent) {
-	fmt.Printf("Toggle3 is unimplemented %v\n", ev)
+	state := STATE_OFF
+	if ev.pressed {
+		switch ev.button {
+		case c.upId:
+			state = STATE_HI
+		case c.downId:
+			state = STATE_LOW
+		}
+	}
+	for mode, action := range c.actions {
+		if c.parent.group.mode == 0 || c.parent.group.mode&mode > 0 {
+			action.HandleEvent(c, state)
+		}
+	}
 }
-func (c *toggle3) ModeAction(mode Mode, action Action) {
+
+func (c *toggle3) Action(mode Mode, action Action) {
 	c.actions[mode] = action
+}
+
+func (c *toggle3) Value(state State) Value {
+	return c.values[state]
 }
 
 func (c *toggle3) setParent(dg *device) {
@@ -229,6 +292,7 @@ type fourWay struct {
 	pressable bool
 
 	actions map[Mode]Action
+	values  map[State]Value
 }
 
 func FourWay(u, r, d, l uint8) *fourWay {
@@ -260,8 +324,12 @@ func (f *fourWay) Depress(b uint8) *fourWay {
 	return f
 }
 
-func (c *fourWay) ModeAction(mode Mode, action Action) {
+func (c *fourWay) Action(mode Mode, action Action) {
 	c.actions[mode] = action
+}
+
+func (c *fourWay) Value(state State) Value {
+	return c.values[state]
 }
 
 func (c *fourWay) setParent(dg *device) {
