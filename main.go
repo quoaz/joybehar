@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ianmcmahon/joybehar/controls"
-	kbd "github.com/micmonay/keybd_event"
 
 	"github.com/simulatedsimian/joystick"
 )
@@ -43,14 +42,50 @@ func (a _dcsToggle) HandleEvent(_ controls.Control, state controls.State) {
 	}
 }
 
+type _keyAction struct {
+	keys []int
+}
+
+func keyAction(keys ...int) _keyAction {
+	return _keyAction{keys}
+}
+
+func (a _keyAction) HandleEvent(control controls.Control, state controls.State) {
+	switch state {
+	case controls.STATE_ON:
+		for _, k := range a.keys {
+			downKey(k)
+		}
+	case controls.STATE_OFF:
+		for _, k := range a.keys {
+			upKey(k)
+		}
+	}
+}
+
+type _keyPulse struct {
+	keys []int
+}
+
+func keyPulse(keys ...int) _keyPulse {
+	return _keyPulse{keys}
+}
+
+func (a _keyPulse) HandleEvent(control controls.Control, state controls.State) {
+	if state == controls.STATE_ON {
+		for _, k := range a.keys {
+			downKey(k)
+		}
+		time.Sleep(50 * time.Millisecond)
+		for _, k := range a.keys {
+			upKey(k)
+		}
+	}
+}
+
 var dcs *dcsAgent
 
 func main() {
-	_, err := kbd.NewKeyBonding()
-	if err != nil {
-		panic(err)
-	}
-
 	dcs = DCSAgent()
 
 	warthog := controls.WarthogGroup()
@@ -59,21 +94,33 @@ func main() {
 
 	warthog.ModeToggle(stick.Control("paddle"), controls.MODE_SHIFT, controls.MODE_NORM)
 
-	//stick.Control("trigger1").Action(controls.MODE_ALL, pulse(kb, kbd.VK_SPACE))
-	//stick.Control("trigger2").Action(controls.MODE_ALL, pulse(kb, kbd.VK_T))
+	stick.Control("trigger1").Action(controls.MODE_ALL, keyAction(K_SPACE))
+	stick.Control("trigger2").Action(controls.MODE_ALL, keyAction(K_T))
 
 	stick.Control("weaponrelease").Action(controls.MODE_NORM, dcsAction("WEAPON_RELEASE"))
 	stick.Control("weaponrelease").Action(controls.MODE_SHIFT, dcsToggle("RWR_PWR"))
 
 	stick.Control("nws").Action(controls.MODE_ALL, dcsAction("NWS"))
+
 	stick.Control("index").Action(controls.MODE_NORM, dcsAction("FL_CHAFF_BT"))
+	stick.Control("index").Action(controls.MODE_SHIFT, keyPulse(0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0x5B, 0x5C))
 
 	stick.Control("tms_up").Action(controls.MODE_SHIFT, dcsToggle("ARMPOS0", "ARMPOS6"))
 	stick.Control("tms_dn").Action(controls.MODE_SHIFT, dcsToggle("ARMPOS3"))
 	stick.Control("tms_rt").Action(controls.MODE_SHIFT, dcsToggle("ARMPOS2", "ARMPOS4"))
 	stick.Control("tms_lt").Action(controls.MODE_SHIFT, dcsToggle("ARMPOS1", "ARMPOS5"))
 
+	/*
+		stick.Control("cms_up").Action(controls.MODE_NORM, keyPulse("dogfight guns"))
+		stick.Control("cms_dn").Action(controls.MODE_NORM, keyPulse("dogfight missile"))
+		stick.Control("cms_dp").Action(controls.MODE_NORM, keyPulse("dogfight resume"))
+		stick.Control("cms_dp").Action(controls.MODE_SHIFT, keyPulse("escape (long press should be map)"))
+	*/
+
 	throttle := warthog.Device("throttle")
+
+	//throttle.Control("mic_up").Action(controls.MODE_NORM, keyPulse("vr recenter"))
+	//throttle.Control("mic_dn").Action(controls.MODE_NORM, keyPulse("vr zoom"))
 
 	throttle.Control("speedbrake").Action(controls.MODE_ALL, dcsAction("SPEED"))
 	throttle.Control("boatswitch").Action(controls.MODE_ALL, dcsAction("A_FLAPS"))

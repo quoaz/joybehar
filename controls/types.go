@@ -69,14 +69,14 @@ func (dg *deviceGroup) AddDevice(device *device) {
 	dg.devices[device.name] = device
 	device.group = dg
 
-	fmt.Printf("device %s has %d buttons\n", device.name, device.buttonCount())
+	//fmt.Printf("device %s has %d buttons\n", device.name, device.buttonCount())
 
 	for jsId := 0; jsId < 10; jsId++ {
 		js, err := joystick.Open(jsId)
 		if err != nil {
 			continue
 		}
-		fmt.Printf("Found device %d with Axes: %d, Buttons: %d\n", js.Name(), js.AxisCount(), js.ButtonCount())
+		//fmt.Printf("Found device %d with Axes: %d, Buttons: %d\n", js.Name(), js.AxisCount(), js.ButtonCount())
 		if js.ButtonCount() == device.buttonCount() {
 			device.joyId = jsId
 			device.joystick = js
@@ -117,7 +117,7 @@ func (a modeAction) HandleEvent(_ Control, state State) {
 	} else {
 		a.dg.mode = a.dg.mode&(0xFF^a.on) | a.off
 	}
-	fmt.Printf("MODE: %b\n", a.dg.mode)
+	//fmt.Printf("MODE: %b\n", a.dg.mode)
 }
 
 func (dg *deviceGroup) ModeToggle(c Control, on, off Mode) {
@@ -169,7 +169,7 @@ func (c *button) Handle(ev ButtonEvent) {
 }
 
 func (c *button) Action(mode Mode, action Action) {
-	fmt.Printf("adding action for mode %b\n", mode)
+	//fmt.Printf("adding action for mode %b\n", mode)
 	c.actions[mode] = action
 }
 

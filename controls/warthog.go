@@ -17,11 +17,7 @@ func WarthogGroup() *deviceGroup {
 func WarthogThrottle() *device {
 	d := NewDevice("throttle")
 
-	micswitch := FourWay(MIC_SWITCH_UP, MIC_SWITCH_FWD, MIC_SWITCH_DOWN, MIC_SWITCH_AFT)
-	micswitch.Depress(MIC_SWITCH_PRESS)
-
 	d.AddControl("slewpress", Button(SLEW_PRESS))
-	d.AddControl("micswitch", micswitch)
 	d.AddControl("speedbrake", Toggle3(SPEEDBRAKE_DEPLOY, SPEEDBRAKE_RETRACT))
 	d.AddControl("boatswitch", Toggle3(BOAT_SWITCH_FWD, BOAT_SWITCH_AFT))
 	d.AddControl("chinahat", Toggle3(CHINA_HAT_FWD, CHINA_HAT_AFT))
@@ -40,6 +36,12 @@ func WarthogThrottle() *device {
 	d.AddControl("apselect", Toggle3(AP_PATH, AP_ALT))
 	d.AddControl("leftidle", Button(LEFT_IDLE))
 	d.AddControl("rightidle", Button(RIGHT_IDLE))
+
+	d.AddControl("mic_up", Button(MIC_SWITCH_UP))
+	d.AddControl("mic_fwd", Button(MIC_SWITCH_FWD))
+	d.AddControl("mic_dn", Button(MIC_SWITCH_DOWN))
+	d.AddControl("mic_aft", Button(MIC_SWITCH_AFT))
+	d.AddControl("mic_dp", Button(MIC_SWITCH_PRESS))
 
 	return d
 }
