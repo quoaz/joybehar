@@ -12,7 +12,7 @@ import (
 const (
 	outputStreamAddr = "239.255.50.10:5010"
 	inputStreamAddr  = "localhost:7778"
-	maxDatagramSize  = 256
+	maxDatagramSize  = 1024 * 1024
 )
 
 type DCSOutput interface {
