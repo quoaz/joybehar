@@ -91,15 +91,10 @@ func (dg *deviceGroup) AddDevice(device *device) {
 type State uint8
 
 const (
-	STATE_OFF   State = 0
-	STATE_HI    State = 1
-	STATE_ON    State = 1
-	STATE_LOW   State = 2
-	STATE_UP    State = 1
-	STATE_RIGHT State = 2
-	STATE_DOWN  State = 3
-	STATE_LEFT  State = 4
-	STATE_PRESS State = 5
+	STATE_OFF State = 0
+	STATE_HI  State = 1
+	STATE_ON  State = 1
+	STATE_LOW State = 2
 )
 
 type Action interface {
@@ -130,7 +125,6 @@ type Control interface {
 	ButtonIDs() []uint8
 	Handle(ButtonEvent)
 	Action(Mode, Action)
-	Value(State) Value
 	setParent(*device)
 }
 
@@ -138,17 +132,12 @@ type button struct {
 	parent   *device
 	buttonId uint8
 	actions  map[Mode]Action
-	values   map[State]Value
 }
 
 func Button(b uint8) *button {
 	return &button{
 		buttonId: b,
 		actions:  make(map[Mode]Action, 0),
-		values: map[State]Value{
-			STATE_OFF: "0",
-			STATE_ON:  "1",
-		},
 	}
 }
 
@@ -173,10 +162,6 @@ func (c *button) Action(mode Mode, action Action) {
 	c.actions[mode] = action
 }
 
-func (c *button) Value(state State) Value {
-	return c.values[state]
-}
-
 func (c *button) setParent(dg *device) {
 	c.parent = dg
 }
@@ -185,17 +170,12 @@ type toggle struct {
 	parent   *device
 	buttonId uint8
 	actions  map[Mode]Action
-	values   map[State]Value
 }
 
 func Toggle(b uint8) *toggle {
 	return &toggle{
 		buttonId: b,
 		actions:  make(map[Mode]Action, 0),
-		values: map[State]Value{
-			STATE_OFF: "0",
-			STATE_HI:  "1",
-		},
 	}
 }
 
@@ -219,10 +199,6 @@ func (c *toggle) Action(mode Mode, action Action) {
 	c.actions[mode] = action
 }
 
-func (c *toggle) Value(state State) Value {
-	return c.values[state]
-}
-
 func (c *toggle) setParent(dg *device) {
 	c.parent = dg
 }
@@ -232,7 +208,6 @@ type toggle3 struct {
 	upId    uint8
 	downId  uint8
 	actions map[Mode]Action
-	values  map[State]Value
 }
 
 func Toggle3(u, d uint8) *toggle3 {
@@ -240,11 +215,6 @@ func Toggle3(u, d uint8) *toggle3 {
 		upId:    u,
 		downId:  d,
 		actions: make(map[Mode]Action, 0),
-		values: map[State]Value{
-			STATE_LOW: "0",
-			STATE_OFF: "1",
-			STATE_HI:  "2",
-		},
 	}
 }
 
@@ -273,65 +243,6 @@ func (c *toggle3) Action(mode Mode, action Action) {
 	c.actions[mode] = action
 }
 
-func (c *toggle3) Value(state State) Value {
-	return c.values[state]
-}
-
 func (c *toggle3) setParent(dg *device) {
-	c.parent = dg
-}
-
-type fourWay struct {
-	parent  *device
-	up      uint8
-	right   uint8
-	down    uint8
-	left    uint8
-	depress uint8
-
-	pressable bool
-
-	actions map[Mode]Action
-	values  map[State]Value
-}
-
-func FourWay(u, r, d, l uint8) *fourWay {
-	return &fourWay{
-		up:      u,
-		right:   r,
-		down:    d,
-		left:    l,
-		actions: make(map[Mode]Action, 0),
-	}
-}
-
-func (c *fourWay) ButtonIDs() []uint8 {
-	out := []uint8{c.up, c.right, c.down, c.left}
-	if c.pressable {
-		out = append(out, c.depress)
-	}
-	return out
-}
-
-func (c *fourWay) Handle(ev ButtonEvent) {
-	fmt.Printf("FourWay is unimplemented %v\n", ev)
-}
-
-func (f *fourWay) Depress(b uint8) *fourWay {
-	f.depress = b
-	f.pressable = true
-
-	return f
-}
-
-func (c *fourWay) Action(mode Mode, action Action) {
-	c.actions[mode] = action
-}
-
-func (c *fourWay) Value(state State) Value {
-	return c.values[state]
-}
-
-func (c *fourWay) setParent(dg *device) {
 	c.parent = dg
 }

@@ -34,8 +34,8 @@ func WarthogThrottle() *device {
 	d.AddControl("radalt", Toggle(RADAR_ALTIMETER))
 	d.AddControl("apengage", Button(AP_ENGAGE))
 	d.AddControl("apselect", Toggle3(AP_PATH, AP_ALT))
-	d.AddControl("leftidle", Button(LEFT_IDLE))
-	d.AddControl("rightidle", Button(RIGHT_IDLE))
+	d.AddControl("leftidle", Toggle(LEFT_IDLE))
+	d.AddControl("rightidle", Toggle(RIGHT_IDLE))
 
 	d.AddControl("mic_up", Button(MIC_SWITCH_UP))
 	d.AddControl("mic_fwd", Button(MIC_SWITCH_FWD))

@@ -140,8 +140,8 @@ const (
 	K_RSHIFT              = 0xA1
 	K_LCONTROL            = 0xA2
 	K_RCONTROL            = 0xA3
-	K_LMENU               = 0xA4
-	K_RMENU               = 0xA5
+	K_LALT                = 0xA4
+	K_RALT                = 0xA5
 	K_BROWSER_BACK        = 0xA6
 	K_BROWSER_FORWARD     = 0xA7
 	K_BROWSER_REFRESH     = 0xA8
@@ -167,8 +167,10 @@ const (
 	K_OEM_PERIOD          = 0xBE
 	K_OEM_2               = 0xBF
 	K_OEM_3               = 0xC0
+	K_GRAVE               = 0xC0
 	K_OEM_4               = 0xDB
 	K_OEM_5               = 0xDC
+	K_BACKSLASH           = 0xDC
 	K_OEM_6               = 0xDD
 	K_OEM_7               = 0xDE
 	K_OEM_8               = 0xDF

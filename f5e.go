@@ -1,9 +1,10 @@
 package main
 
+/*
 type F5E struct{}
 
 func (f F5E) Stick() *device {
-	stick := Device("stick")
+//	stick := Device("stick")
 
 	//stick.DCSToggle(Press(NWS), "NWS", "0", "1")
 	//stick.DCSToggle(LongPress(NWS), "LNWS", "0", "1")
@@ -42,6 +43,7 @@ func (f F5E) Throttle() *device {
 
 	return throttle
 }
+*/
 
 /*
 // other useful stuff for extension panels
