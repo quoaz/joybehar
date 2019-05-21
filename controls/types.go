@@ -1,10 +1,6 @@
 package controls
 
-import (
-	"fmt"
-
-	"github.com/simulatedsimian/joystick"
-)
+import "github.com/simulatedsimian/joystick"
 
 type Mode uint8
 
@@ -14,6 +10,8 @@ type device struct {
 
 	controls      map[string]Control
 	buttonHandler map[uint8]Control
+
+	povButtonCount int
 
 	joyId        int
 	joystick     joystick.Joystick
@@ -33,6 +31,11 @@ func (d *device) Control(name string) Control {
 	return d.controls[name]
 }
 
+func (d *device) AddPOVControl(name string, c Control) {
+	d.povButtonCount++
+	d.AddControl(name, c)
+}
+
 func (d *device) AddControl(name string, c Control) {
 	c.setParent(d)
 	d.controls[name] = c
@@ -42,11 +45,7 @@ func (d *device) AddControl(name string, c Control) {
 }
 
 func (d *device) buttonCount() int {
-	cnt := 0
-	for range d.buttonHandler {
-		cnt++
-	}
-	return cnt
+	return len(d.buttonHandler) - d.povButtonCount
 }
 
 type deviceGroup struct {
@@ -80,7 +79,7 @@ func (dg *deviceGroup) AddDevice(device *device) {
 		if js.ButtonCount() == device.buttonCount() {
 			device.joyId = jsId
 			device.joystick = js
-			fmt.Printf("using buttoncount %d device for %s\n", js.ButtonCount(), device.name)
+			//fmt.Printf("using buttoncount %d device for %s\n", js.ButtonCount(), device.name)
 
 			go device.PollJoystick()
 			return

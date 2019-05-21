@@ -38,6 +38,7 @@ func sendPause() {
 func downKey(key uint16) {
 	if key == K_PAUSE {
 		procKeybdEvent.Call(uintptr(K_PAUSE&0xFF), 0, 0, 0)
+		return
 	}
 
 	var flags uint32 = win.KEYEVENTF_SCANCODE

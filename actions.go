@@ -123,6 +123,27 @@ func (a _keyPulse) HandleEvent(control controls.Control, state controls.State) {
 	}
 }
 
+type _keyPress struct {
+	keys []uint16
+}
+
+func keyPress(keys ...uint16) _keyPress {
+	return _keyPress{keys}
+}
+
+func (a _keyPress) HandleEvent(control controls.Control, state controls.State) {
+	switch state {
+	case controls.STATE_ON:
+		for _, k := range a.keys {
+			downKey(k)
+		}
+	case controls.STATE_OFF:
+		for _, k := range a.keys {
+			upKey(k)
+		}
+	}
+}
+
 type _keyToggle struct {
 	on, off controls.Action
 }

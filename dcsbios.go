@@ -131,10 +131,14 @@ func (a *dcsAgent) Receive() {
 
 	iface, err := multicastInterface()
 	if err != nil {
-		panic(fmt.Errorf("can't find specified interface %v\n", err))
+		fmt.Printf("can't find specified interface %v\n", err)
+		fmt.Printf("disabling dcsbios receive\n")
+		return
 	}
 	if err := pc.JoinGroup(iface, outputUDP); err != nil {
-		panic(err)
+		fmt.Printf("joining multicast group %v: %v\n", outputUDP, err)
+		fmt.Printf("disabling dcsbios receive\n")
+		return
 	}
 
 	if loop, err := pc.MulticastLoopback(); err == nil {

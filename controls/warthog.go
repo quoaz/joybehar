@@ -43,6 +43,11 @@ func WarthogThrottle() *device {
 	d.AddControl("mic_aft", Button(MIC_SWITCH_AFT))
 	d.AddControl("mic_dp", Button(MIC_SWITCH_PRESS))
 
+	d.AddPOVControl("tdc_fwd", Button(TDC_FWD))
+	d.AddPOVControl("tdc_aft", Button(TDC_AFT))
+	d.AddPOVControl("tdc_left", Button(TDC_LEFT))
+	d.AddPOVControl("tdc_right", Button(TDC_RIGHT))
+
 	return d
 }
 
@@ -101,6 +106,10 @@ const (
 	CMS_AFT        uint8 = 16
 	CMS_LEFT       uint8 = 17
 	CMS_DEPRESS    uint8 = 18
+	TRIM_NOSE_DN   uint8 = 19
+	TRIM_NOSE_UP   uint8 = 20
+	TRIM_LWD       uint8 = 21
+	TRIM_RWD       uint8 = 22
 )
 
 // throttle buttons
@@ -137,4 +146,8 @@ const (
 	LEFT_IDLE          uint8 = 29
 	ENG_LEFT_IGN       uint8 = 30
 	ENG_RIGHT_IGN      uint8 = 31
+	TDC_AFT            uint8 = 32
+	TDC_FWD            uint8 = 33
+	TDC_LEFT           uint8 = 34
+	TDC_RIGHT          uint8 = 35
 )

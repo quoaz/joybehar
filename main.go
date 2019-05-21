@@ -9,6 +9,13 @@ import (
 
 var dcs *dcsAgent
 
+/*
+	Need module support
+
+	F-5E-3
+	F-14B
+*/
+
 func main() {
 	dcs = DCSAgent()
 
@@ -45,18 +52,24 @@ func main() {
 	throttle.Control("slewpress").Action(controls.MODE_SHIFT, mouseToggle(RIGHT))
 
 	throttle.Control("mic_up").Action(controls.MODE_NORM, keyPulse(K_LCONTROL, K_LALT, K_GRAVE))
-	throttle.Control("mic_dn").Action(controls.MODE_NORM, keyPulse(K_GRAVE))
-	throttle.Control("mic_aft").Action(controls.MODE_NORM, keyPulse(K_BACKSLASH))
+	throttle.Control("mic_dn").Action(controls.MODE_NORM, keyPress(K_GRAVE))
+	throttle.Control("mic_aft").Action(controls.MODE_SHIFT, keyPulse(K_BACKSLASH))
+
+	throttle.Control("tdc_fwd").Action(controls.MODE_NORM, keyPulse(K_P))
+	throttle.Control("tdc_aft").Action(controls.MODE_NORM, keyPulse(K_F1))
+	throttle.Control("tdc_left").Action(controls.MODE_NORM, keyPulse(K_F2))
+	throttle.Control("tdc_right").Action(controls.MODE_NORM, keyPulse(K_F6))
 
 	throttle.Control("speedbrake").Action(controls.MODE_ALL, dcsAction("SPEED"))
 	throttle.Control("boatswitch").Action(controls.MODE_ALL, dcsAction("A_FLAPS"))
 	throttle.Control("chinahat").Action(controls.MODE_ALL, dcsAction("RADAR_RANGE").withVals("DEC", "", "INC"))
 
 	throttle.Control("flaps").Action(controls.MODE_ALL, dcsAction("FLAPS"))
-	throttle.Control("eacarm").Action(controls.MODE_ALL, dcsAction("GEAR"))
+	throttle.Control("eacarm").Action(controls.MODE_ALL, dcsAction("LG_LEVER_SWITCH"))
+	throttle.Control("apselect").Action(controls.MODE_ALL, masterArm())
 
-	throttle.Control("leftidle").Action(controls.MODE_ALL, keyToggle(keyPulse(K_RALT, K_HOME), keyPulse(K_RALT, K_END)))
-	throttle.Control("rightidle").Action(controls.MODE_ALL, keyToggle(keyPulse(K_RSHIFT, K_HOME), keyPulse(K_RSHIFT, K_END)))
+	throttle.Control("leftidle").Action(controls.MODE_ALL, keyToggle(keyPulse(K_RALT, K_END), keyPulse(K_RALT, K_HOME)))
+	throttle.Control("rightidle").Action(controls.MODE_ALL, keyToggle(keyPulse(K_RSHIFT, K_END), keyPulse(K_RSHIFT, K_HOME)))
 
 	dcs.Register(&StringOutput{Addr: 0x0000, MaxLength: 16, Action: func(_ uint16, s string) {
 		fmt.Printf("Airplane: %s\n", s)

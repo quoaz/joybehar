@@ -1,5 +1,32 @@
 package main
 
+import (
+	"time"
+
+	"github.com/ianmcmahon/joybehar/controls"
+)
+
+type _masterArm struct{}
+
+func masterArm() _masterArm {
+	return _masterArm{}
+}
+
+func (a _masterArm) HandleEvent(_ controls.Control, state controls.State) {
+	switch state {
+	case controls.STATE_HI:
+		dcs.Send("MASTER_ARM_GUARD", "1")
+		time.Sleep(50 * time.Millisecond)
+		dcs.Send("MASTER_ARM", "2")
+	case controls.STATE_OFF:
+		dcs.Send("MASTER_ARM", "1")
+		//dcs.Send("MASTER_ARM_GUARD", "0")
+	case controls.STATE_LOW:
+		//dcs.Send("MASTER_ARM_GUARD", "1")
+		dcs.Send("MASTER_ARM", "0")
+	}
+}
+
 /*
 type F5E struct{}
 
