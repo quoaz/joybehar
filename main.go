@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/ianmcmahon/joybehar/controls"
 )
 
 var dcs *dcsAgent
+var panel *panelAgent
 
 /*
 	Need module support
@@ -20,6 +22,8 @@ func main() {
 	dcs = DCSAgent()
 
 	warthog := controls.WarthogGroup()
+
+	panel = PanelAgent("COM3", dcs, warthog)
 
 	stick := warthog.Device("stick")
 
@@ -55,10 +59,17 @@ func main() {
 	throttle.Control("mic_dn").Action(controls.MODE_NORM, keyPress(K_GRAVE))
 	throttle.Control("mic_aft").Action(controls.MODE_SHIFT, keyPulse(K_BACKSLASH))
 
+	throttle.Control("mic_dp").Action(controls.MODE_SHIFT, keyPulse(K_RSHIFT, K_K))
+
 	throttle.Control("tdc_fwd").Action(controls.MODE_NORM, keyPulse(K_P))
 	throttle.Control("tdc_aft").Action(controls.MODE_NORM, keyPulse(K_F1))
 	throttle.Control("tdc_left").Action(controls.MODE_NORM, keyPulse(K_F2))
 	throttle.Control("tdc_right").Action(controls.MODE_NORM, keyPulse(K_F6))
+
+	throttle.Control("tdc_fwd").Action(controls.MODE_SHIFT, mouseScroll(-300))
+	throttle.Control("tdc_aft").Action(controls.MODE_SHIFT, mouseScroll(300))
+	throttle.Control("tdc_left").Action(controls.MODE_SHIFT, keyPulse(K_LEFTBRACE))
+	throttle.Control("tdc_right").Action(controls.MODE_SHIFT, keyPulse(K_RIGHTBRACE))
 
 	throttle.Control("speedbrake").Action(controls.MODE_ALL, dcsAction("SPEED"))
 	throttle.Control("boatswitch").Action(controls.MODE_ALL, dcsAction("A_FLAPS"))
@@ -67,16 +78,43 @@ func main() {
 	throttle.Control("flaps").Action(controls.MODE_ALL, dcsAction("FLAPS"))
 	throttle.Control("eacarm").Action(controls.MODE_ALL, dcsAction("LG_LEVER_SWITCH"))
 	throttle.Control("apselect").Action(controls.MODE_ALL, masterArm())
+	throttle.Control("pinkybutton").Action(controls.MODE_NORM, dcsAction("MISSILE_UNCAGE"))
+	throttle.Control("pinkybutton").Action(controls.MODE_SHIFT, keyPulse(K_LCONTROL, K_E))
 
-	throttle.Control("leftidle").Action(controls.MODE_ALL, keyToggle(keyPulse(K_RALT, K_END), keyPulse(K_RALT, K_HOME)))
-	throttle.Control("rightidle").Action(controls.MODE_ALL, keyToggle(keyPulse(K_RSHIFT, K_END), keyPulse(K_RSHIFT, K_HOME)))
+	throttle.Control("leftidle").Action(controls.MODE_ALL, keyToggle(keyPulse(K_RALT, K_HOME), keyPulse(K_RALT, K_END)))
+	throttle.Control("rightidle").Action(controls.MODE_ALL, keyToggle(keyPulse(K_RSHIFT, K_HOME), keyPulse(K_RSHIFT, K_END)))
+
+	panel.Intercept("HSI_HDG_KNOB", controls.MODE_SHIFT, makeIncremental("TACAN_10"))
+	panel.Intercept("HSI_CRS_KNOB", controls.MODE_SHIFT, makeIncremental("TACAN_1"))
 
 	dcs.Register(&StringOutput{Addr: 0x0000, MaxLength: 16, Action: func(_ uint16, s string) {
 		fmt.Printf("Airplane: %s\n", s)
 	}})
 	go dcs.Receive()
 
+	go panel.Receive()
+
 	for {
 		time.Sleep(1 * time.Second)
+	}
+}
+
+func makeIncremental(newLabel string) interceptAction {
+	return func(in dcsMsg) (dcsMsg, error) {
+		val, err := strconv.ParseInt(in.value, 10, 32)
+		if err != nil {
+			return in, fmt.Errorf("Error converting hsi counts to incremental: %v - %v", in, err)
+		}
+		if val > 0 {
+			in.value = "INC"
+			in.message = newLabel
+			return in, nil
+		}
+		if val < 0 {
+			in.value = "DEC"
+			in.message = newLabel
+			return in, nil
+		}
+		return in, fmt.Errorf("Zero counts don't increment or decrement")
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 
 	"golang.org/x/net/ipv4"
@@ -108,8 +109,20 @@ type dcsMsg struct {
 	value   string
 }
 
+func DCSMsg(s string) (dcsMsg, error) {
+	tokens := strings.Split(s, " ")
+	if len(tokens) != 2 {
+		return dcsMsg{s, ""}, fmt.Errorf("Invalid dcsMsg: %s", s)
+	}
+	return dcsMsg{tokens[0], tokens[1]}, nil
+}
+
 func (a *dcsAgent) Send(msg, val string) {
-	a.send <- dcsMsg{msg, val}
+	a.SendMsg(dcsMsg{msg, val})
+}
+
+func (a *dcsAgent) SendMsg(m dcsMsg) {
+	a.send <- m
 }
 
 func (a *dcsAgent) Receive() {

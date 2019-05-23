@@ -140,6 +140,18 @@ func mouse(button uint8, down bool) {
 	fmt.Printf("mouse event %v %v send returned %d\n", button, down, ret)
 }
 
+func scroll(delta int32) {
+	input := win.MOUSE_INPUT{
+		Type: win.INPUT_MOUSE,
+		Mi: win.MOUSEINPUT{
+			DwFlags:   win.MOUSEEVENTF_WHEEL,
+			MouseData: uint32(delta),
+		},
+	}
+	ret := win.SendInput(1, unsafe.Pointer(&input), int32(unsafe.Sizeof(input)))
+	fmt.Printf("mouse scroll event %d send returned %d\n", delta, ret)
+}
+
 const (
 	K_ESC        uint16 = 0x01
 	K_1                 = 0x02

@@ -48,6 +48,10 @@ func (d *device) buttonCount() int {
 	return len(d.buttonHandler) - d.povButtonCount
 }
 
+type Modal interface {
+	Mode() Mode
+}
+
 type deviceGroup struct {
 	mode    Mode
 	devices map[string]*device
@@ -62,6 +66,10 @@ func DeviceGroup() *deviceGroup {
 
 func (dg *deviceGroup) Device(name string) *device {
 	return dg.devices[name]
+}
+
+func (dg *deviceGroup) Mode() Mode {
+	return dg.mode
 }
 
 func (dg *deviceGroup) AddDevice(device *device) {

@@ -161,6 +161,21 @@ func (a _keyToggle) HandleEvent(control controls.Control, state controls.State) 
 	}
 }
 
+type _mouseScroll struct {
+	delta int32
+}
+
+func mouseScroll(delta int32) _mouseScroll {
+	return _mouseScroll{delta}
+}
+
+func (a _mouseScroll) HandleEvent(control controls.Control, state controls.State) {
+	switch state {
+	case controls.STATE_ON:
+		scroll(a.delta)
+	}
+}
+
 type _mouseToggle struct {
 	button uint8
 }

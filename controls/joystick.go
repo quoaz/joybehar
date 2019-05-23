@@ -38,10 +38,10 @@ func (d *device) events(prev, next uint32, buttonCount, buttonIDOffset int) []Bu
 }
 
 func (d *device) processEvents() {
-	fmt.Printf("%s processing events\n", d.name)
+	//	fmt.Printf("%s processing events\n", d.name)
 	for v := range d.buttonEvents {
-		fmt.Printf("handling: %v\n", v)
-		fmt.Printf("handler: %v\n", d.buttonHandler[v.button])
+		//		fmt.Printf("handling: %v\n", v)
+		//		fmt.Printf("handler: %v\n", d.buttonHandler[v.button])
 		go d.buttonHandler[v.button].Handle(v)
 	}
 }

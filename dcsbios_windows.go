@@ -3,6 +3,6 @@ package main
 import "net"
 
 func multicastInterface() (*net.Interface, error) {
-	iface, err := net.InterfaceByName("Wi-Fi")
+	iface, err := net.InterfaceByName("Ethernet")
 	return iface, err
 }
