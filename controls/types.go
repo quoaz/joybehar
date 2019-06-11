@@ -1,15 +1,19 @@
 package controls
 
-import "github.com/simulatedsimian/joystick"
+import (
+	"github.com/ianmcmahon/joybehar/alert"
+	"github.com/ianmcmahon/joybehar/dcs"
+	"github.com/simulatedsimian/joystick"
+)
 
 type Mode uint8
 
 type device struct {
 	name  string
-	group *deviceGroup
+	group *DeviceGroup
 
 	controls      map[string]Control
-	buttonHandler map[uint8]Control
+	buttonHandler map[uint8]string
 
 	povButtonCount int
 
@@ -19,12 +23,16 @@ type device struct {
 }
 
 func NewDevice(name string) *device {
-	return &device{
+	d := &device{
 		name:          name,
 		controls:      make(map[string]Control, 0),
-		buttonHandler: make(map[uint8]Control, 0),
+		buttonHandler: make(map[uint8]string, 0),
 		buttonEvents:  make(chan ButtonEvent, 0),
 	}
+
+	mapControls(name, d)
+
+	return d
 }
 
 func (d *device) Control(name string) Control {
@@ -37,10 +45,22 @@ func (d *device) AddPOVControl(name string, c Control) {
 }
 
 func (d *device) AddControl(name string, c Control) {
-	c.setParent(d)
+	c.setParent(d.group)
 	d.controls[name] = c
 	for _, id := range c.ButtonIDs() {
-		d.buttonHandler[id] = c
+		d.buttonHandler[id] = name
+	}
+}
+
+func (d *device) HandleEvent(ev ButtonEvent) {
+	ctlName := d.buttonHandler[ev.button]
+	moduleMap := d.group.CurrentMap()
+	if moduleMap == nil {
+		alert.Sayf("selected module: '%s' no module map found", d.group.currentModule)
+		return
+	}
+	if ctl, ok := moduleMap.controls[d.name][ctlName]; ok {
+		ctl.Handle(ev)
 	}
 }
 
@@ -50,29 +70,42 @@ func (d *device) buttonCount() int {
 
 type Modal interface {
 	Mode() Mode
+	SetMode(Mode)
 }
 
-type deviceGroup struct {
-	mode    Mode
-	devices map[string]*device
+type Interceptor interface {
+	Modal
+	Intercept(msg dcs.DCSMsg) (dcs.DCSMsg, error)
 }
 
-func DeviceGroup() *deviceGroup {
-	return &deviceGroup{
-		mode:    MODE_NORM,
-		devices: make(map[string]*device, 0),
+type DeviceGroup struct {
+	mode          Mode
+	devices       map[string]*device
+	moduleMaps    map[string]*moduleMap
+	currentModule string
+}
+
+func NewDeviceGroup() *DeviceGroup {
+	return &DeviceGroup{
+		mode:       MODE_NORM,
+		devices:    make(map[string]*device, 0),
+		moduleMaps: make(map[string]*moduleMap, 0),
 	}
 }
 
-func (dg *deviceGroup) Device(name string) *device {
+func (dg *DeviceGroup) Device(name string) *device {
 	return dg.devices[name]
 }
 
-func (dg *deviceGroup) Mode() Mode {
+func (dg *DeviceGroup) Mode() Mode {
 	return dg.mode
 }
 
-func (dg *deviceGroup) AddDevice(device *device) {
+func (dg *DeviceGroup) SetMode(mode Mode) {
+	dg.mode = mode
+}
+
+func (dg *DeviceGroup) AddDevice(device *device) {
 	dg.devices[device.name] = device
 	device.group = dg
 
@@ -109,21 +142,16 @@ type Action interface {
 }
 
 type modeAction struct {
-	dg      *deviceGroup
+	dg      Modal
 	on, off Mode
 }
 
 func (a modeAction) HandleEvent(_ Control, state State) {
 	if state == STATE_HI {
-		a.dg.mode = a.dg.mode&(0xFF^a.off) | a.on
+		a.dg.SetMode(a.dg.Mode()&(0xFF^a.off) | a.on)
 	} else {
-		a.dg.mode = a.dg.mode&(0xFF^a.on) | a.off
+		a.dg.SetMode(a.dg.Mode()&(0xFF^a.on) | a.off)
 	}
-	//fmt.Printf("MODE: %b\n", a.dg.mode)
-}
-
-func (dg *deviceGroup) ModeToggle(c Control, on, off Mode) {
-	c.Action(MODE_ALL, modeAction{dg, on, off})
 }
 
 type Value string
@@ -132,11 +160,11 @@ type Control interface {
 	ButtonIDs() []uint8
 	Handle(ButtonEvent)
 	Action(Mode, Action)
-	setParent(*device)
+	setParent(Modal)
 }
 
 type button struct {
-	parent   *device
+	parent   Modal
 	buttonId uint8
 	actions  map[Mode]Action
 }
@@ -158,7 +186,7 @@ func (c *button) Handle(ev ButtonEvent) {
 		state = STATE_ON
 	}
 	for mode, action := range c.actions {
-		if c.parent.group.mode == 0 || c.parent.group.mode&mode > 0 {
+		if c.parent.Mode() == 0 || c.parent.Mode()&mode > 0 {
 			action.HandleEvent(c, state)
 		}
 	}
@@ -169,12 +197,12 @@ func (c *button) Action(mode Mode, action Action) {
 	c.actions[mode] = action
 }
 
-func (c *button) setParent(dg *device) {
+func (c *button) setParent(dg Modal) {
 	c.parent = dg
 }
 
 type toggle struct {
-	parent   *device
+	parent   Modal
 	buttonId uint8
 	actions  map[Mode]Action
 }
@@ -196,7 +224,7 @@ func (c *toggle) Handle(ev ButtonEvent) {
 		state = STATE_ON
 	}
 	for mode, action := range c.actions {
-		if c.parent.group.mode == 0 || c.parent.group.mode&mode > 0 {
+		if c.parent.Mode() == 0 || c.parent.Mode()&mode > 0 {
 			action.HandleEvent(c, state)
 		}
 	}
@@ -206,12 +234,12 @@ func (c *toggle) Action(mode Mode, action Action) {
 	c.actions[mode] = action
 }
 
-func (c *toggle) setParent(dg *device) {
+func (c *toggle) setParent(dg Modal) {
 	c.parent = dg
 }
 
 type toggle3 struct {
-	parent  *device
+	parent  Modal
 	upId    uint8
 	downId  uint8
 	actions map[Mode]Action
@@ -240,7 +268,7 @@ func (c *toggle3) Handle(ev ButtonEvent) {
 		}
 	}
 	for mode, action := range c.actions {
-		if c.parent.group.mode == 0 || c.parent.group.mode&mode > 0 {
+		if c.parent.Mode() == 0 || c.parent.Mode()&mode > 0 {
 			action.HandleEvent(c, state)
 		}
 	}
@@ -250,6 +278,6 @@ func (c *toggle3) Action(mode Mode, action Action) {
 	c.actions[mode] = action
 }
 
-func (c *toggle3) setParent(dg *device) {
+func (c *toggle3) setParent(dg Modal) {
 	c.parent = dg
 }

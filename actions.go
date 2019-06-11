@@ -4,8 +4,26 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ianmcmahon/joybehar/alert"
 	"github.com/ianmcmahon/joybehar/controls"
 )
+
+type sayAction struct {
+	wrapped controls.Action
+	message string
+}
+
+func (a sayAction) HandleEvent(control controls.Control, state controls.State) {
+	alert.Say(a.message)
+	a.wrapped.HandleEvent(control, state)
+}
+
+func say(action controls.Action, message string) controls.Action {
+	return sayAction{
+		wrapped: action,
+		message: message,
+	}
+}
 
 type _dcsAction struct {
 	msg  []string
@@ -61,7 +79,8 @@ func (a _dcsAction) HandleEvent(control controls.Control, state controls.State) 
 	}
 	for _, msg := range a.msg {
 		if val != "" {
-			dcs.Send(msg, val)
+			fmt.Printf("dcsAction: %s\n", msg)
+			dcsAgent.Send(msg, val)
 		}
 	}
 }
@@ -77,7 +96,8 @@ func dcsToggle(msgs ...string) _dcsToggle {
 func (a _dcsToggle) HandleEvent(_ controls.Control, state controls.State) {
 	if state == controls.STATE_ON {
 		for _, msg := range a.msg {
-			dcs.Send(msg, "TOGGLE")
+			fmt.Printf("dcsToggle: %s\n", msg)
+			dcsAgent.Send(msg, "TOGGLE")
 		}
 	}
 }

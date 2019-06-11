@@ -1,13 +1,9 @@
 package main
 
-import (
-	"time"
+import "github.com/ianmcmahon/joybehar/controls"
 
-	"github.com/ianmcmahon/joybehar/controls"
-)
-
-func F5EMap(group *controls.DeviceGroup) {
-	m := group.ModuleMap("F-5E-3")
+func F14BMap(group *controls.DeviceGroup) {
+	m := group.ModuleMap("F-14B")
 
 	m.ModeToggle("stick", "paddle", controls.MODE_SHIFT, controls.MODE_NORM)
 	m.Control("stick", "trigger1").Action(controls.MODE_ALL, keyAction(K_T))
@@ -63,27 +59,6 @@ func F5EMap(group *controls.DeviceGroup) {
 	m.Control("throttle", "leftidle").Action(controls.MODE_ALL, keyToggle(keyPulse(K_RALT, K_HOME), keyPulse(K_RALT, K_END)))
 	m.Control("throttle", "rightidle").Action(controls.MODE_ALL, keyToggle(keyPulse(K_RSHIFT, K_HOME), keyPulse(K_RSHIFT, K_END)))
 
-	m.Intercept("HSI_HDG_KNOB", controls.MODE_SHIFT, makeIncremental("TACAN_10"))
-	m.Intercept("HSI_CRS_KNOB", controls.MODE_SHIFT, makeIncremental("TACAN_1"))
-}
+	m.ReLabel("LG_LEVER_SWITCH", controls.MODE_NORM, "PLT_GEAR_LEVER")
 
-type _masterArm struct{}
-
-func masterArm() _masterArm {
-	return _masterArm{}
-}
-
-func (a _masterArm) HandleEvent(_ controls.Control, state controls.State) {
-	switch state {
-	case controls.STATE_HI:
-		dcsAgent.Send("MASTER_ARM_GUARD", "1")
-		time.Sleep(50 * time.Millisecond)
-		dcsAgent.Send("MASTER_ARM", "2")
-	case controls.STATE_OFF:
-		dcsAgent.Send("MASTER_ARM", "1")
-		//dcsAgent.Send("MASTER_ARM_GUARD", "0")
-	case controls.STATE_LOW:
-		//dcsAgent.Send("MASTER_ARM_GUARD", "1")
-		dcsAgent.Send("MASTER_ARM", "0")
-	}
 }

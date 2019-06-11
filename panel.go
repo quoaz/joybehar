@@ -5,20 +5,17 @@ import (
 	"fmt"
 
 	"github.com/ianmcmahon/joybehar/controls"
+	"github.com/ianmcmahon/joybehar/dcs"
 	"github.com/jacobsa/go-serial/serial"
 )
 
-// on error, drops the message entirely
-type interceptAction func(dcsMsg) (dcsMsg, error)
-
 type panelAgent struct {
-	options    serial.OpenOptions
-	dcsAgent   *dcsAgent
-	group      controls.Modal
-	intercepts map[string]map[controls.Mode]interceptAction
+	options  serial.OpenOptions
+	dcsAgent dcs.Agent
+	group    controls.Interceptor
 }
 
-func PanelAgent(port string, dcsAgent *dcsAgent, group controls.Modal) *panelAgent {
+func PanelAgent(port string, dcsAgent dcs.Agent, group controls.Interceptor) *panelAgent {
 	agent := &panelAgent{
 		options: serial.OpenOptions{
 			PortName:        port,
@@ -27,26 +24,11 @@ func PanelAgent(port string, dcsAgent *dcsAgent, group controls.Modal) *panelAge
 			StopBits:        1,
 			MinimumReadSize: 4,
 		},
-		dcsAgent:   dcsAgent,
-		group:      group,
-		intercepts: make(map[string]map[controls.Mode]interceptAction, 0),
+		dcsAgent: dcsAgent,
+		group:    group,
 	}
 
 	return agent
-}
-
-func (a *panelAgent) ReLabel(label string, mode controls.Mode, alt string) {
-	a.Intercept(label, mode, func(m dcsMsg) (dcsMsg, error) {
-		m.message = alt
-		return m, nil
-	})
-}
-
-func (a *panelAgent) Intercept(label string, mode controls.Mode, action interceptAction) {
-	if _, ok := a.intercepts[label]; !ok {
-		a.intercepts[label] = make(map[controls.Mode]interceptAction, 0)
-	}
-	a.intercepts[label][mode] = action
 }
 
 func (a *panelAgent) Receive() {
@@ -61,20 +43,18 @@ func (a *panelAgent) Receive() {
 	scanner := bufio.NewScanner(port)
 
 	for scanner.Scan() {
-		msg, err := DCSMsg(scanner.Text())
+		msg, err := dcs.DCSMsgFromString(scanner.Text())
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
-		if m, ok := a.intercepts[msg.message]; ok {
-			if action, ok := m[a.group.Mode()]; ok {
-				msg, err = action(msg)
-				if err != nil {
-					fmt.Println(err)
-					continue
-				}
-			}
+		msg, err = a.group.Intercept(msg)
+		if err != nil {
+			fmt.Println(err)
+			continue
 		}
+
+		fmt.Printf("%v\n", msg)
 		a.dcsAgent.SendMsg(msg)
 	}
 }

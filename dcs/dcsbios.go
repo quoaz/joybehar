@@ -1,4 +1,4 @@
-package main
+package dcs
 
 import (
 	"encoding/hex"
@@ -60,7 +60,7 @@ func (o *StringOutput) PerformAction(agent *dcsAgent) {
 	val := string(agent.memory[o.Addr : o.Addr+o.MaxLength])
 	if val != o.Value {
 		o.Value = val
-		o.Action(o.Addr, val)
+		o.Action(o.Addr, val[0:strings.Index(val, "\x00")])
 	}
 }
 
@@ -69,7 +69,7 @@ type dcsAgent struct {
 	memMutex      *sync.RWMutex
 	notifiers     map[uint16]DCSOutput
 	notifierMutex *sync.RWMutex
-	send          chan dcsMsg
+	send          chan DCSMsg
 }
 
 func DCSAgent() *dcsAgent {
@@ -78,7 +78,7 @@ func DCSAgent() *dcsAgent {
 		memMutex:      &sync.RWMutex{},
 		notifiers:     make(map[uint16]DCSOutput, 0),
 		notifierMutex: &sync.RWMutex{},
-		send:          make(chan dcsMsg, 0),
+		send:          make(chan DCSMsg, 0),
 	}
 	return agent
 }
@@ -104,24 +104,31 @@ func (a *dcsAgent) notify(addrs []uint16) {
 	}
 }
 
-type dcsMsg struct {
-	message string
-	value   string
+type DCSMsg struct {
+	Message string
+	Value   string
 }
 
-func DCSMsg(s string) (dcsMsg, error) {
+func DCSMsgFromString(s string) (DCSMsg, error) {
 	tokens := strings.Split(s, " ")
 	if len(tokens) != 2 {
-		return dcsMsg{s, ""}, fmt.Errorf("Invalid dcsMsg: %s", s)
+		return DCSMsg{s, ""}, fmt.Errorf("Invalid dcsMsg: %s", s)
 	}
-	return dcsMsg{tokens[0], tokens[1]}, nil
+	return DCSMsg{tokens[0], tokens[1]}, nil
+}
+
+type Agent interface {
+	Send(msg, val string)
+	SendMsg(m DCSMsg)
+	Register(output DCSOutput)
+	Receive()
 }
 
 func (a *dcsAgent) Send(msg, val string) {
-	a.SendMsg(dcsMsg{msg, val})
+	a.SendMsg(DCSMsg{msg, val})
 }
 
-func (a *dcsAgent) SendMsg(m dcsMsg) {
+func (a *dcsAgent) SendMsg(m DCSMsg) {
 	a.send <- m
 }
 
@@ -165,11 +172,11 @@ func (a *dcsAgent) Receive() {
 
 	go func() {
 		for msg := range a.send {
-			data := []byte(fmt.Sprintf("%s %s\n", msg.message, msg.value))
-			if n, err := conn.WriteTo(data, inputUDP); err != nil {
+			data := []byte(fmt.Sprintf("%s %s\n", msg.Message, msg.Value))
+			if _, err := conn.WriteTo(data, inputUDP); err != nil {
 				fmt.Printf("err in udp write: %v\n", err)
 			} else {
-				fmt.Printf("sent %d bytes:%s\n", n, data)
+				//fmt.Printf("sent %d bytes:%s\n", n, data)
 			}
 		}
 	}()
@@ -209,7 +216,7 @@ func (a *dcsAgent) decodeDatagram(b []byte) []uint16 {
 		addr := toWord(b[0:2])
 		n := toWord(b[2:4])
 		if len(b) < 4+int(n) {
-			fmt.Printf("%p wants %d bytes but we only have %d\n", addr, n, len(b))
+			fmt.Printf("%x wants %d bytes but we only have %d\n", addr, n, len(b))
 			break
 		}
 		data := b[4 : 4+n]

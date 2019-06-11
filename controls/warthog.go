@@ -6,17 +6,24 @@ const (
 	MODE_ALL   Mode = 0xFF
 )
 
-func WarthogGroup() *deviceGroup {
-	group := DeviceGroup()
-	group.AddDevice(WarthogThrottle())
-	group.AddDevice(WarthogStick())
+func WarthogGroup() *DeviceGroup {
+	group := NewDeviceGroup()
+	group.AddDevice(NewDevice("throttle"))
+	group.AddDevice(NewDevice("stick"))
 
 	return group
 }
 
-func WarthogThrottle() *device {
-	d := NewDevice("throttle")
+func mapControls(name string, d ControlMap) {
+	switch name {
+	case "stick":
+		mapStickControls(d)
+	case "throttle":
+		mapThrottleControls(d)
+	}
+}
 
+func mapThrottleControls(d ControlMap) {
 	d.AddControl("slewpress", Button(SLEW_PRESS))
 	d.AddControl("speedbrake", Toggle3(SPEEDBRAKE_DEPLOY, SPEEDBRAKE_RETRACT))
 	d.AddControl("boatswitch", Toggle3(BOAT_SWITCH_FWD, BOAT_SWITCH_AFT))
@@ -47,13 +54,9 @@ func WarthogThrottle() *device {
 	d.AddPOVControl("tdc_aft", Button(TDC_AFT))
 	d.AddPOVControl("tdc_left", Button(TDC_LEFT))
 	d.AddPOVControl("tdc_right", Button(TDC_RIGHT))
-
-	return d
 }
 
-func WarthogStick() *device {
-	d := NewDevice("stick")
-
+func mapStickControls(d ControlMap) {
 	d.AddControl("trigger1", Button(TRIGGER_FIRST))
 	d.AddControl("trigger2", Button(TRIGGER_SECOND))
 	d.AddControl("weaponrelease", Button(WEAPON_RELEASE))
@@ -81,8 +84,6 @@ func WarthogStick() *device {
 	d.AddControl("cms_dn", Button(CMS_AFT))
 	d.AddControl("cms_lt", Button(CMS_LEFT))
 	d.AddControl("cms_dp", Button(CMS_DEPRESS))
-
-	return d
 }
 
 // stick buttons
