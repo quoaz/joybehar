@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ianmcmahon/joybehar/alert"
 	"golang.org/x/net/ipv4"
 )
 
@@ -151,21 +152,21 @@ func (a *dcsAgent) Receive() {
 
 	iface, err := multicastInterface()
 	if err != nil {
-		fmt.Printf("can't find specified interface %v\n", err)
-		fmt.Printf("disabling dcsbios receive\n")
+		alert.Sayf("can't find specified interface %v", err)
+		alert.Sayf("disabling dcsbios receive")
 		return
 	}
 	if err := pc.JoinGroup(iface, outputUDP); err != nil {
-		fmt.Printf("joining multicast group %v: %v\n", outputUDP, err)
-		fmt.Printf("disabling dcsbios receive\n")
+		alert.Sayf("joining multicast group %v: %v\n", outputUDP, err)
+		alert.Sayf("disabling dcsbios receive\n")
 		return
 	}
 
 	if loop, err := pc.MulticastLoopback(); err == nil {
-		fmt.Printf("MulticastLoobpack Status: :%v\n", loop)
+		alert.Sayf("MulticastLoobpack Status: :%v\n", loop)
 		if !loop {
 			if err := pc.SetMulticastLoopback(true); err != nil {
-				fmt.Printf("SetMulticastLoopback error: %v\n", err)
+				alert.Sayf("SetMulticastLoopback error: %v\n", err)
 			}
 		}
 	}
@@ -174,7 +175,7 @@ func (a *dcsAgent) Receive() {
 		for msg := range a.send {
 			data := []byte(fmt.Sprintf("%s %s\n", msg.Message, msg.Value))
 			if _, err := conn.WriteTo(data, inputUDP); err != nil {
-				fmt.Printf("err in udp write: %v\n", err)
+				alert.Sayf("err in udp write: %v\n", err)
 			} else {
 				//fmt.Printf("sent %d bytes:%s\n", n, data)
 			}
@@ -188,7 +189,7 @@ func (a *dcsAgent) Receive() {
 
 		len, _, err := conn.ReadFromUDP(buffer)
 		if err != nil {
-			fmt.Printf("error in udp read: %v\n", err)
+			alert.Sayf("error in udp read: %v\n", err)
 		}
 		updatedAddrs := a.decodeDatagram(buffer[0:len])
 		go a.notify(updatedAddrs)

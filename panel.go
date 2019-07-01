@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"time"
 
+	"github.com/ianmcmahon/joybehar/alert"
 	"github.com/ianmcmahon/joybehar/controls"
 	"github.com/ianmcmahon/joybehar/dcs"
 	"github.com/jacobsa/go-serial/serial"
@@ -32,10 +34,12 @@ func PanelAgent(port string, dcsAgent dcs.Agent, group controls.Interceptor) *pa
 }
 
 func (a *panelAgent) Receive() {
+	time.Sleep(500 * time.Millisecond)
+	alert.Say("Opening panel")
 	port, err := serial.Open(a.options)
 	if err != nil {
-		fmt.Printf("Error opening serial port: %v\n", err)
-		fmt.Printf("Disabling dcsbios panel\n")
+		alert.Sayf("Error opening serial port: %v", err)
+		alert.Say("Disabling dcsbios panel")
 		return
 	}
 	defer port.Close()
@@ -45,16 +49,18 @@ func (a *panelAgent) Receive() {
 	for scanner.Scan() {
 		msg, err := dcs.DCSMsgFromString(scanner.Text())
 		if err != nil {
-			fmt.Println(err)
+			alert.Sayf("%v", err)
 			continue
 		}
 		msg, err = a.group.Intercept(msg)
 		if err != nil {
-			fmt.Println(err)
+			alert.Sayf("%v", err)
 			continue
 		}
 
 		fmt.Printf("%v\n", msg)
 		a.dcsAgent.SendMsg(msg)
 	}
+	alert.Say("Panel receive exiting")
+	go a.Receive()
 }
