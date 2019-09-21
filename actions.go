@@ -79,7 +79,7 @@ func (a _dcsAction) HandleEvent(control controls.Control, state controls.State) 
 	}
 	for _, msg := range a.msg {
 		if val != "" {
-			fmt.Printf("dcsAction: %s\n", msg)
+			fmt.Printf("dcsAction: %s %s\n", msg, val)
 			dcsAgent.Send(msg, val)
 		}
 	}

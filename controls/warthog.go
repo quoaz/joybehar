@@ -64,6 +64,11 @@ func mapStickControls(d ControlMap) {
 	d.AddControl("index", Button(INDEX_BUTTON))
 	d.AddControl("paddle", Button(PINKY_PADDLE))
 
+	d.AddPOVControl("trim_nu", Button(TRIM_NOSE_UP))
+	d.AddPOVControl("trim_nd", Button(TRIM_NOSE_DN))
+	d.AddPOVControl("trim_lt", Button(TRIM_LWD))
+	d.AddPOVControl("trim_rt", Button(TRIM_RWD))
+
 	/* I'm not sure fourways are worth the effort; if there's no four-state dcs objects to bind to
 	d.AddControl("tms", FourWay(TMS_FWD, TMS_RIGHT, TMS_AFT, TMS_LEFT))
 	d.AddControl("dms", FourWay(DMS_FWD, DMS_RIGHT, DMS_AFT, DMS_LEFT))

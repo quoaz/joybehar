@@ -31,6 +31,8 @@ func F5EMap(group *controls.DeviceGroup) {
 	m.Control("stick", "cms_dp").Action(controls.MODE_NORM, tempo(keyPulse(K_R), keyPulse(K_PAUSE))) // dogfight resume, pause
 	m.Control("stick", "cms_dp").Action(controls.MODE_SHIFT, tempo(keyPulse(K_ESC), keyPulse(K_F10)))
 
+	m.Control("stick", "dms_up").Action(controls.MODE_NORM, keyAction(K_KPPLUS)) // discord PTT
+
 	m.Control("throttle", "slewpress").Action(controls.MODE_NORM, mouseToggle(LEFT))
 	m.Control("throttle", "slewpress").Action(controls.MODE_SHIFT, mouseToggle(RIGHT))
 
