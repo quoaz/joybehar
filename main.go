@@ -39,6 +39,8 @@ func main() {
 	F5EMap(warthog)
 	F14BMap(warthog)
 	FA18CMap(warthog)
+	F16CMap(warthog)
+	JF17Map(warthog)
 
 	dcsAgent.Register(&dcs.StringOutput{Addr: 0x0000, MaxLength: 16, Action: func(_ uint16, module string) {
 		if warthog.HasModule(module) {
