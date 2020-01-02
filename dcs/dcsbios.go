@@ -59,9 +59,9 @@ func (o *StringOutput) Address() uint16 {
 
 func (o *StringOutput) PerformAction(agent *dcsAgent) {
 	val := string(agent.memory[o.Addr : o.Addr+o.MaxLength])
-	if val != o.Value {
+	if nulpos := strings.Index(val, "\x00"); val != o.Value && nulpos >= 0 {
 		o.Value = val
-		o.Action(o.Addr, val[0:strings.Index(val, "\x00")])
+		o.Action(o.Addr, val[0:nulpos])
 	}
 }
 
