@@ -3,6 +3,6 @@ package dcs
 import "net"
 
 func multicastInterface() (*net.Interface, error) {
-	iface, err := net.InterfaceByName("Ethernet")
+	iface, err := net.InterfaceByName("Wi-Fi")
 	return iface, err
 }
